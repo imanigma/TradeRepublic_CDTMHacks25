@@ -2,25 +2,24 @@ import os
 import speech_recognition as sr
 import pyttsx3
 import pandas as pd
-import json
-import re
+import spacy
 
-# Configuration: Set up the file and TTS engine
+# Configuration
 CSV_FILE = r"C:\Users\ararm\Desktop\CDTM\voice-trading-bot\data\trading_sample_data_with_company.csv"
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 
-# Load the CSV data into a pandas DataFrame
+# Load data
 df = pd.read_csv(CSV_FILE)
 
+# Load spaCy model
+nlp = spacy.load("en_core_web_sm")
 
-# Normalize command input (helpful for abbreviations or variations)
+
 def normalize_command(command):
-    command = command.lower().strip()
-    return command
+    return command.lower().strip()
 
 
-# Listen to voice command and recognize it
 def voice_to_text():
     with sr.Microphone() as source:
         print("Listening for command...")
@@ -40,37 +39,51 @@ def voice_to_text():
         return ""
 
 
-# Process the command to extract relevant data (company name and query type)
-def process_command(command):
-    command = normalize_command(command)
+def extract_entities(command):
+    doc = nlp(command)
+    for ent in doc.ents:
+        if ent.label_ == "ORG":
+            print(f"Company name extracted: {ent.text}")
+            return ent.text
+    print("Company not found in command.")
+    return ""
 
-    # Updated regex to capture only company name (ignores 'transactions' or 'transaction')
-    match = re.search(r"how many ([\w\s]+?)(?: transactions?)?$", command)
-    matchend = re.search(r"enough", command)  # Ensure this only matches "enough"
 
-    if match:
-        company_name = match.group(1).strip()
-        print(f"Company name extracted: {company_name}")
-        return company_name
-    elif matchend:
-        print("Thank you for using our service!")
-        return -1
+def detect_intent(command):
+    if "most transactions" in command or "top company" in command:
+        return "top_company"
+    elif "last transaction" in command:
+        return "last_transaction"
+    elif "how many" in command or "number of transactions" in command:
+        return "transaction_count"
+    elif "total value" in command or "worth" in command:
+        return "total_value"
     else:
-        print("Company not found in command.")
-        return ""
+        return "unknown"
 
 
-
-
-# Get the count of transactions for a specific company
 def get_transaction_count(company_name):
     company_name = company_name.lower()
     filtered_df = df[df['CompanyName'].str.lower().str.contains(company_name, na=False)]
     transaction_count = filtered_df.shape[0]
-    return transaction_count
+    total_value = filtered_df['executionPrice'].sum()
+    return transaction_count, total_value
 
 
-# Convert the text to speech and respond
+def get_last_transaction(company_name):
+    filtered = df[df['CompanyName'].str.lower().str.contains(company_name.lower(), na=False)]
+    if not filtered.empty:
+        last = filtered.sort_values(by='executionTime', ascending=False).iloc[0]
+        return last['executionPrice'], last['executionTime']
+    return None, None
+
+
+def get_top_company():
+    top_company = df['CompanyName'].value_counts().idxmax()
+    count = df['CompanyName'].value_counts().max()
+    return top_company, count
+
+
 def text_to_voice(text):
     try:
         engine.say(text)
@@ -79,28 +92,43 @@ def text_to_voice(text):
         print(f"Error in voice generation: {e}")
 
 
-# Main function to run the program
 def trading_voice_interface():
     while True:
         command = voice_to_text()
-        if command:
-            company_name = process_command(command)
-            if company_name == -1:
-                text_to_voice("Thank you for using our service!")
-                break  # Exit the loop if the user says "enough"
-            elif company_name:
-                transaction_count = get_transaction_count(company_name)
-                if transaction_count > 0:
-                    response = f"There are {transaction_count} transactions for {company_name}."
-                else:
-                    response = f"No transactions found for {company_name}."
-                text_to_voice(response)
-            else:
-                text_to_voice("Sorry, I couldn't find a company in the command.")
-        else:
+        if not command:
             text_to_voice("Sorry, I didn't understand your request. Please try again.")
+            continue
+
+        if "enough" in command or "stop" in command or "exit" or "exit" in command:
+            text_to_voice("Okay, stopping now. Goodbye!")
+            break
+
+        intent = detect_intent(command)
+        company_name = extract_entities(command)
+
+        if intent == "top_company":
+            top_company, count = get_top_company()
+            response = f"The company with the most transactions is {top_company} with {count} transactions."
+        elif intent == "last_transaction" and company_name:
+            price, time = get_last_transaction(company_name)
+            if price and time:
+                response = f"The last transaction for {company_name} was at {time} for {price}."
+            else:
+                response = f"No transactions found for {company_name}."
+        elif intent == "transaction_count" and company_name:
+            count, total = get_transaction_count(company_name)
+            response = f"There are {count} transactions for {company_name} with a total value of {total}." if count else f"No transactions found for {company_name}."
+        elif intent == "total_value" and company_name:
+            _, total = get_transaction_count(company_name)
+            response = f"The total transaction value for {company_name} is {total}." if total else f"No transactions found for {company_name}."
+        else:
+            response = "Sorry, I couldn't understand the request."
+
+        print(response)
+        text_to_voice(response)
 
 
 
 if __name__ == "__main__":
     trading_voice_interface()
+
