@@ -158,3 +158,4 @@ def trading_voice_interface():
 # Run the interface
 if __name__ == "__main__":
     trading_voice_interface()
+    
