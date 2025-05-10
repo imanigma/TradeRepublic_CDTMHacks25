@@ -3,6 +3,7 @@ import speech_recognition as sr
 import pyttsx3
 import pandas as pd
 import spacy
+from fuzzywuzzy import process
 
 # Configuration
 CSV_FILE = r"C:\Users\ararm\Desktop\CDTM\voice-trading-bot\data\trading_sample_data_with_company.csv"
@@ -13,11 +14,13 @@ engine = pyttsx3.init()
 df = pd.read_csv(CSV_FILE)
 nlp = spacy.load("en_core_web_sm")
 
+
 # Speak
 def text_to_voice(text):
     print(text)
     engine.say(text)
     engine.runAndWait()
+
 
 # Listen
 def voice_to_text():
@@ -38,14 +41,35 @@ def voice_to_text():
         print("Could not request results.")
         return ""
 
-# Extract company using spaCy
+
+# Extract company using spaCy and fuzzy matching
 def extract_entities(command):
     doc = nlp(command)
+
+    # Try to extract company name using spaCy
     for ent in doc.ents:
         if ent.label_ == "ORG":
             print(f"Company name extracted: {ent.text}")
-            return ent.text
+            company_name = ent.text.lower()
+
+            # Fuzzy match the extracted name to the CSV file
+            best_match = process.extractOne(company_name, df['CompanyName'].str.lower().tolist())
+            if best_match and best_match[1] > 80:  # Match threshold can be adjusted
+                matched_company = best_match[0]
+                print(f"Best matched company: {matched_company}")
+                return matched_company
+
+    # If no company was detected by spaCy, fallback to direct fuzzy matching
+    company_name = command.lower()
+    best_match = process.extractOne(company_name, df['CompanyName'].str.lower().tolist())
+    if best_match and best_match[1] > 80:  # Match threshold can be adjusted
+        matched_company = best_match[0]
+        print(f"Best matched company: {matched_company}")
+        return matched_company
+
+    # If no match found, return empty
     return ""
+
 
 # Intent detection
 def detect_intent(command):
@@ -73,37 +97,46 @@ def detect_intent(command):
     else:
         return "unknown"
 
+
 # Functionalities
 def get_transaction_count(company):
     filtered = df[df['CompanyName'].str.lower().str.contains(company.lower(), na=False)]
     return len(filtered)
 
+
 def get_total_value(company):
     filtered = df[df['CompanyName'].str.lower().str.contains(company.lower(), na=False)]
     return filtered['executionPrice'].sum()
+
 
 def get_average_value(company):
     filtered = df[df['CompanyName'].str.lower().str.contains(company.lower(), na=False)]
     return filtered['executionPrice'].mean()
 
+
 def get_top_company():
     return df['CompanyName'].value_counts().idxmax()
+
 
 def get_first_transaction(company):
     filtered = df[df['CompanyName'].str.lower().str.contains(company.lower(), na=False)]
     return filtered.sort_values(by='executionDate').head(1)
 
+
 def get_last_transaction(company):
     filtered = df[df['CompanyName'].str.lower().str.contains(company.lower(), na=False)]
     return filtered.sort_values(by='executionDate', ascending=False).head(1)
 
+
 def list_all_companies():
     return df['CompanyName'].dropna().unique()
+
 
 def get_transaction_types():
     if 'transactionType' in df.columns:
         return df['transactionType'].unique()
     return ["transactionType column not found"]
+
 
 def print_help():
     return (
@@ -116,6 +149,7 @@ def print_help():
         "- List all companies\n"
         "- Say 'enough' to stop"
     )
+
 
 # Main loop
 def trading_voice_interface():
@@ -165,7 +199,8 @@ def trading_voice_interface():
                 result = get_last_transaction(company)
                 if not result.empty:
                     row = result.iloc[0]
-                    text_to_voice(f"The last transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
+                    text_to_voice(
+                        f"The last transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
                 else:
                     text_to_voice("No transactions found.")
             else:
@@ -177,7 +212,8 @@ def trading_voice_interface():
                 result = get_first_transaction(company)
                 if not result.empty:
                     row = result.iloc[0]
-                    text_to_voice(f"The first transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
+                    text_to_voice(
+                        f"The first transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
                 else:
                     text_to_voice("No transactions found.")
             else:
@@ -197,6 +233,8 @@ def trading_voice_interface():
         else:
             text_to_voice("Sorry, I'm not sure how to help with that. Say 'help' to hear what I can do.")
 
+
 # Run the assistant
 if __name__ == "__main__":
     trading_voice_interface()
+
