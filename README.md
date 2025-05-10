@@ -27,3 +27,7 @@ The bot will:
 - Query the current price (via Trade Republic)
 - "Execute" a mock trade
 - Read back a confirmation using ElevenLabs
+
+- Extraction works :D
+- Extracted company name from ISINs and stored them in a local file
+  
