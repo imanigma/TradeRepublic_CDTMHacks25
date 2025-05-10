@@ -17,9 +17,14 @@ nlp = spacy.load("en_core_web_sm")
 
 # Speak
 def text_to_voice(text):
-    print(text)
-    engine.say(text)
-    engine.runAndWait()
+    try:
+        print(text)
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as e:
+        print(f"Error in text_to_voice: {e}")
+    finally:
+        engine.stop()
 
 
 # Listen
@@ -74,6 +79,9 @@ def extract_entities(command):
 # Intent detection
 def detect_intent(command):
     command = command.lower()
+    print(f"Command: {command}")  # Debugging statement to print the command
+
+    # Specific Intent checks first
     if "most transactions" in command or "top company" in command:
         return "top_company"
     elif "last transaction" in command:
@@ -86,14 +94,17 @@ def detect_intent(command):
         return "total_value"
     elif "average value" in command or "average transaction" in command:
         return "average_value"
-    elif "list companies" in command or "show companies" in command:
+    elif "list" in command or "list companies" in command or "show companies" in command:
         return "list_companies"
     elif "transaction types" in command or "types of transactions" in command:
         return "transaction_types"
     elif "help" in command or "what can you do" in command:
         return "help"
+
+    # Exit related intents checked last
     elif "stop" in command or "exit" in command or "enough" in command:
         return "exit"
+
     else:
         return "unknown"
 
@@ -133,9 +144,9 @@ def list_all_companies():
 
 
 def get_transaction_types():
-    if 'transactionType' in df.columns:
-        return df['transactionType'].unique()
-    return ["transactionType column not found"]
+    if 'type' in df.columns:
+        return df['type'].unique()
+    return ["type column not found"]
 
 
 def print_help():
@@ -160,6 +171,7 @@ def trading_voice_interface():
             continue
 
         intent = detect_intent(command)
+        print(f"Intent Detected: {intent}")  # Debugging statement to print the detected intent
 
         if intent == "exit":
             text_to_voice("Thank you for using our service. Goodbye!")
@@ -199,8 +211,7 @@ def trading_voice_interface():
                 result = get_last_transaction(company)
                 if not result.empty:
                     row = result.iloc[0]
-                    text_to_voice(
-                        f"The last transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
+                    text_to_voice(f"The last transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
                 else:
                     text_to_voice("No transactions found.")
             else:
@@ -212,8 +223,7 @@ def trading_voice_interface():
                 result = get_first_transaction(company)
                 if not result.empty:
                     row = result.iloc[0]
-                    text_to_voice(
-                        f"The first transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
+                    text_to_voice(f"The first transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
                 else:
                     text_to_voice("No transactions found.")
             else:
@@ -232,6 +242,7 @@ def trading_voice_interface():
 
         else:
             text_to_voice("Sorry, I'm not sure how to help with that. Say 'help' to hear what I can do.")
+
 
 
 # Run the assistant
