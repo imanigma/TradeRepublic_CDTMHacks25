@@ -1,0 +1,7 @@
+openai
+pyaudio
+langchain
+elevenlabs
+speechrecognition
+websockets
+sounddevice
