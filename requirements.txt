@@ -1,0 +1,17 @@
+openai~=1.78.0
+pyaudio
+langchain~=0.2.17
+elevenlabs~=1.58.1
+speechrecognition~=3.14.2
+pyttsx3~=2.90
+pandas~=2.2.2
+spacy<3.7
+pydantic<2
+numpy
+python-Levenshtein
+langchain-openai~=0.3.16
+langchain-core~=0.2.43
+fuzzywuzzy~=0.18.0
+requests~=2.32.3
+websockets~=15.0.1
+langchain-community~=0.3.23
