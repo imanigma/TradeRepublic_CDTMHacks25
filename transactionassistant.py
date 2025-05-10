@@ -248,3 +248,4 @@ def trading_voice_interface():
 # Run the assistant
 if __name__ == "__main__":
     trading_voice_interface()
+
