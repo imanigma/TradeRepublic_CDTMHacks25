@@ -5,6 +5,7 @@ import pyttsx3
 import pandas as pd
 import spacy
 from fuzzywuzzy import process
+import re
 
 # Configuration
 CSV_FILE = r"C:\Users\ararm\Desktop\CDTM\voice-trading-bot\data\trading_sample_data_with_company.csv"
@@ -137,39 +138,93 @@ def extract_entities(command):
     return ""
 
 
+SYNONYMS = {
+    "price": ["price", "cost", "worth", "value"],
+    "stock": ["stock", "share"],
+    "transaction": ["transaction", "txn", "deal", "operation"],
+    "company": ["company", "business", "firm"],
+    "list": ["list", "show", "display"],
+    "average": ["average", "mean"],
+    "total": ["total", "sum"],
+    "exit": ["exit", "stop", "quit", "leave"],
+    "help": ["help", "assist", "support"]
+}
+
+def expand_pattern(pattern):
+    expanded = []
+    for word in pattern:
+        expanded.append(SYNONYMS.get(word, [word]))
+    return expanded
+
+# Patterns use keywords, not synonyms directly
+INTENT_PATTERNS = {
+    "stock_price": [
+        ["stock", "price"],
+        ["how", "much", "stock", "cost"],
+        ["how", "much", "is", "stock"],
+        ["how", "much", "is", "the", "stock"]
+    ],
+    "top_company": [
+        ["most", "transactions"],
+        ["top", "company"]
+    ],
+    "last_transaction": [["last", "transaction"]],
+    "first_transaction": [["first", "transaction"]],
+    "transaction_count": [
+        ["how", "many"],
+        ["number", "transactions"]
+    ],
+    "total_value": [
+        ["total", "value"],
+        ["total", "worth"]
+    ],
+    "average_value": [
+        ["average", "value"],
+        ["average", "transaction"]
+    ],
+    "list_companies": [
+        ["list", "companies"],
+        ["show", "companies"]
+    ],
+    "transaction_types": [
+        ["transaction", "types"],
+        ["types", "of", "transactions"]
+    ],
+    "help": [
+        ["help"],
+        ["what", "can", "you", "do"]
+    ],
+    "exit": [
+        ["stop"],
+        ["exit"],
+        ["enough"]
+    ]
+}
+
+def preprocess_command(command):
+    command = command.lower()
+    command = re.sub(r'[^\w\s]', '', command)
+    return command.split()
+
 # Intent detection - combine both systems
+def match_pattern(command_words, pattern):
+    # Expand pattern with synonyms
+    expanded = expand_pattern(pattern)
+    for synonym_group in expanded:
+        if not any(word in command_words for word in synonym_group):
+            return False
+    return True
+
+
 def detect_intent(command):
-    command = command.lower().strip()
-    print(f"Command: {command}")  # Debugging statement
+    command_words = preprocess_command(command)
 
-    # Stock price intent (from gpt.py)
-    if "stock price" in command or "current price" in command:
-        return "stock_price"
+    for intent, patterns in INTENT_PATTERNS.items():
+        for pattern in patterns:
+            if match_pattern(command_words, pattern):
+                return intent
 
-    # Specific Intent checks (from transactionassistant.py)
-    elif "most transactions" in command or "top company" in command:
-        return "top_company"
-    elif "last transaction" in command:
-        return "last_transaction"
-    elif "first transaction" in command:
-        return "first_transaction"
-    elif "how many" in command or "number of transactions" in command:
-        return "transaction_count"
-    elif "total value" in command or "worth" in command:
-        return "total_value"
-    elif "average value" in command or "average transaction" in command:
-        return "average_value"
-    elif "list" in command or "list companies" in command or "show companies" in command:
-        return "list_companies"
-    elif "transaction types" in command or "types of transactions" in command:
-        return "transaction_types"
-    elif "help" in command or "what can you do" in command:
-        return "help"
-    # Exit related intents
-    elif "stop" in command or "exit" in command or "enough" in command:
-        return "exit"
-    else:
-        return "unknown"
+    return "unknown"
 
 
 # Transaction data functions
@@ -194,12 +249,12 @@ def get_top_company():
 
 def get_first_transaction(company):
     filtered = df[df['CompanyName'].str.lower().str.contains(company.lower(), na=False)]
-    return filtered.sort_values(by='executionDate').head(1)
+    return filtered.sort_values(by='executedAt').head(1)
 
 
 def get_last_transaction(company):
     filtered = df[df['CompanyName'].str.lower().str.contains(company.lower(), na=False)]
-    return filtered.sort_values(by='executionDate', ascending=False).head(1)
+    return filtered.sort_values(by='executedAt', ascending=False).head(1)
 
 
 def list_all_companies():
