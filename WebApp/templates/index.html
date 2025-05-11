@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grindrich - Trading</title>
+  <style>
+    :root {
+      --bg: #111;
+      --fg: #eee;
+      --accent: #00bcd4;
+      --danger: #e53935;
+      --card-bg: #1c1c1c;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: var(--bg);
+      color: var(--fg);
+    }
+
+    .page {
+      display: none;
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px;
+      border-top: 1px solid #333;
+      background: #1a1a1a;
+    }
+
+    .navbar button {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--fg);
+    }
+
+    .floating-button {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: background-color 0.3s ease;
+    }
+
+    .floating-button:hover {
+      background-color: #00acc1;
+    }
+
+    .floating-button.active {
+      background-color: var(--danger);
+    }
+
+    .floating-button svg {
+      width: 28px;
+      height: 28px;
+      fill: white;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    input,
+    select,
+    button {
+      background: #222;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 10px;
+      width: 100%;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: var(--accent);
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #0097a7;
+    }
+
+    button[style*="var(--danger)"]:hover {
+      background-color: #d32f2f !important;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 150px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      font-size: 14px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #555;
+      transition: 0.4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: var(--accent);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(20px);
+    }
+  </style>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+          formData.append('page_text', getTextFromActivePage());
+          formData.append('gen_z_mode',localStorage.getItem("genZMode"));
+
+          fetch('/voice', {
+            method: 'POST',
+            body: formData
+          })
+            .then(response => response.blob())
+            .then(audioBlob => {
+              const audioURL = URL.createObjectURL(audioBlob);
+              new Audio(audioURL).play();
+            })
+            .catch(err => console.error("Error:", err));
+        };
+      });
+    }
+
+    function stopRecording() {
+      mediaRecorder.stop();
+    }
+
+    function getTextFromActivePage() {
+      const activePage = document.querySelector('.page.active');
+      return activePage ? activePage.textContent.trim() : '';
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.opacity = 1;
+      setTimeout(() => {
+        toast.style.opacity = 0;
+      }, 2000);
+    }
+  </script>
+</head>
+
+<body>
+
+  <!-- Mic Toast -->
+  <div id="toast">Listening...</div>
+
+  <!-- Page 1 -->
+  <div id="page1" class="page active">
+    <h2 style="font-size: 28px; text-align: center;">🚀 Grindrich</h2>
+    <div class="card">🤖 AI Assistant: Here's your financial overview.</div>
+    <div class="card">💼 Investments: €24,500</div>
+    <div class="card">💰 Savings: €6,200</div>
+    <div class="card">💸 Debts: €3,500</div>
+    <div class="card">📈 Mood-Based Forecast: 😊</div>
+    <div class="card">
+      <h3>📊 Investment Story</h3>
+      <p>You're seeing upward growth in key sectors. Reinforce investments now for stronger returns.</p>
+    </div>
+  </div>
+
+  <!-- Page 2 -->
+  <div id="page2" class="page">
+    <h2>📈 Markets</h2>
+    <input type="text" placeholder="Search assets..." />
+    <div class="card"><strong>NFLX:</strong> $442.55 ▲ +4.2%</div>
+    <div class="card"><strong>ETH:</strong> $3,250.00 ▼ -1.1%</div>
+    <div class="card"><strong>AMZN:</strong> $3,122.70 ▲ +2.5%</div>
+    <div class="card"><strong>GOOG:</strong> $2,832.56 ▲ +1.8%</div>
+    <div class="card"><strong>MSFT:</strong> $331.21 ▲ +0.9%</div>
+    <div class="card"><strong>TSLA:</strong> $812.23 ▼ -2.3%</div>
+    <div class="card"><strong>AAPL:</strong> $172.14 ▲ +1.1%</div>
+    <div class="card"><strong>NIO:</strong> $8.22 ▼ -3.0%</div>
+    <div class="card"><strong>BTC:</strong> $63,440.00 ▲ +2.8%</div>
+    <div class="card"><strong>ADA:</strong> $0.39 ▲ +1.2%</div>
+  </div>
+
+  <!-- Page 3 -->
+  <div id="page3" class="page">
+    <h2>💰 Trade</h2>
+    <div class="card">
+      <label for="assetSelect">Select Asset</label>
+      <select id="assetSelect">
+        <option>TSLA</option>
+        <option>AAPL</option>
+        <option>BTC</option>
+        <option>ETH</option>
+        <option>GOOG</option>
+        <option>AMZN</option>
+      </select>
+
+      <label for="amountInput">Amount</label>
+      <input id="amountInput" type="number" placeholder="e.g. 100" />
+
+      <div class="button-row">
+        <button>Buy</button>
+        <button style="background-color: var(--danger);">Sell</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page 4 -->
+  <div id="page4" class="page">
+    <h2>👤 Account</h2>
+    <div class="card">Name: Max Mustermann</div>
+    <div class="card">Email: max@trader.com</div>
+    <div class="card">Available Cash: $5,842.91</div>
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+      <span>Gen Z Mode 🧃</span>
+      <label class="switch">
+        <input type="checkbox" id="genZToggle" onchange="toggleGenZMode()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+
+    <div class="button-row">
+      <button>Deposit</button>
+      <button style="background-color: var(--danger);">Settings</button>
+    </div>
+  </div>
+
+  <!-- Page 5 -->
+  <div id="page5" class="page">
+    <h2>➕ Custom Graphs</h2>
+    <div class="card">
+      <p>Tell me what graph you'd like to see:</p>
+      <input type="text" id="graphPrompt" placeholder="e.g. Show me grocery spending last month" />
+      <div class="button-row">
+        <button onclick="handleGraphPrompt()">Generate Graph</button>
+      </div>
+    </div>
+
+    <div id="graphOutput" class="card" style="margin-top: 20px;">
+      <p style="opacity: 0.6;">(Graph will appear here...)</p>
+    </div>
+  </div>
+
+
+  <!-- Mic Button -->
+  <button class="floating-button" id="micBtn" title="Toggle Mic">
+    <svg viewBox="0 0 24 24">
+      <path
+        d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zM19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V21h-3a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-3.08A7 7 0 0 0 19 11z" />
+    </svg>
+  </button>
+
+  <!-- Nav Bar -->
+  <div class="navbar">
+    <button onclick="showPage(1)">🏠</button>
+    <button onclick="showPage(2)">📈</button>
+    <button onclick="showPage(3)">💰</button>
+    <button onclick="showPage(4)">👤</button>
+    <button onclick="showPage(5)">➕</button>
+  </div>
+
+  <script>
+    function showPage(num) {
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById(`page${i}`).classList.toggle('active', i === num);
+      }
+    }
+
+    const micBtn = document.getElementById('micBtn');
+    let isMicActive = false;
+
+    micBtn.addEventListener('click', () => {
+      isMicActive = !isMicActive;
+      micBtn.classList.toggle('active', isMicActive);
+
+      if (isMicActive) {
+        showToast("🎤 Listening...");
+        startRecording();
+      } else {
+        showToast("🛑 Stopped");
+        stopRecording();
+      }
+    });
+
+    function toggleGenZMode() {
+      const enabled = document.getElementById("genZToggle").checked;
+      localStorage.setItem("genZMode", enabled);
+      showToast(enabled ? "🧃 Gen Z Mode: ON" : "😐 Gen Z Mode: OFF");
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const saved = localStorage.getItem("genZMode") === "true";
+      document.getElementById("genZToggle").checked = saved;
+    });
+
+  </script>
+
+</body>
+
+</html>
