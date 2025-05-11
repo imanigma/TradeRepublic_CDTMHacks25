@@ -11,9 +11,9 @@ from playsound import playsound
 
 # Configuration
 CSV_FILE = r"C:\Users\ararm\Desktop\CDTM\voice-trading-bot\data\trading_sample_data_with_company.csv"
-ALPHA_VANTAGE_API_KEY = "3MI0AOC4HKBQEG57"
+ALPHA_VANTAGE_API_KEY = ""
 openai_client = OpenAI(
-    api_key="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"
+    api_key=""
 )
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
