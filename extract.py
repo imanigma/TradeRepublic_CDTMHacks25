@@ -7,7 +7,7 @@ url = "https://api.openfigi.com/v3/mapping"
 # Define the header with your OpenFIGI API key
 headers = {
     'Content-Type': 'application/json',
-    'X-OPENFIGI-APIKEY': '36e9a503-48a4-4815-971b-0e6370ba6e56'  # Replace with your actual OpenFIGI API key
+    'X-OPENFIGI-APIKEY': ''  # Replace with your actual OpenFIGI API key
 }
 
 # Function to get company name from ISIN using OpenFIGI API
