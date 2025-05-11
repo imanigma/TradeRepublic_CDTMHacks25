@@ -13,7 +13,7 @@ CSV_FILE = r"C:\Users\ararm\Desktop\CDTM\voice-trading-bot\data\trading_sample_d
 
 # Configuration
 CSV_FILE = r"tradeFiltered.csv"
-ALPHA_VANTAGE_API_KEY = "3MI0AOC4HKBQEG57"
+ALPHA_VANTAGE_API_KEY = ""
 openai_client = OpenAI(
     api_key=""
 )
