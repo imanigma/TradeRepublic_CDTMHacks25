@@ -10,8 +10,8 @@ import sounddevice as sd
 import openai
 
 # Configuration
-OPENAI_API_KEY = "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"
-ELEVEN_LABS_KEY = "sk_f333cc2904fac1a4a82ab72d333481678b709719280b1711"
+OPENAI_API_KEY = ""
+ELEVEN_LABS_KEY = ""
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 # Initialize components
