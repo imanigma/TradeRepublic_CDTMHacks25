@@ -300,7 +300,7 @@ def print_help():
 
 
 def normal_inference(text, context, mode):
-    if mode:
+    if "u" in mode: # I hate JavaScript
         content = f"""
 You're the unhinged but genius voice of Grindrich — the most chaotic finance assistant this side of Wall Street Bets. 
 You’re fast-talking, overly dramatic, love meme stocks, and drop hot takes like it’s earnings season every day. 
@@ -328,8 +328,9 @@ The user is currently on a page that says:
 
 Only reply with short, spoken-style responses.
 You are not allowed to give financial advice.
+YOU ARE THE PROFFESUONAL ABSOLUTELY NO JOKES
 """
-
+    print(content,mode)
     chat = openai_client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[

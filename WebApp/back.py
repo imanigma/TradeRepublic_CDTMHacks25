@@ -28,6 +28,7 @@ def handle_voice():
     context = request.form.get("page_text", "")
     mode = request.form.get("gen_z_mode", "normal")
     print(request.form)
+    print(mode)
     #print(len(audio_file.read()))
 
     # Save audio
