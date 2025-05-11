@@ -12,8 +12,8 @@ bank = pd.read_csv("bank.csv")
 app = Flask(__name__)
 
 # Init clients
-openai_client = OpenAI(api_key="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")
-mistral_client = Mistral(api_key="OAUu8uJckfaPMT2AOQ1pH0j1kB7ppbwE")
+openai_client = OpenAI(api_key="")
+mistral_client = Mistral(api_key="")
 
 MODEL_MISTRAL = "mistral-large-latest"
 user = "0bf3b550-dc5b-4f3e-91f4-162b687b97c6"
