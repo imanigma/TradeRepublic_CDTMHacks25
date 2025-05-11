@@ -350,7 +350,7 @@ def enhanced_trading_voice_interface():
                 if not result.empty:
                     row = result.iloc[0]
                     text_to_voice(
-                        f"The last transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
+                        f"The last transaction for {company} was on {row['executedAt']} for {row['executionPrice']}.")
                 else:
                     text_to_voice("No transactions found.")
             else:
@@ -363,7 +363,7 @@ def enhanced_trading_voice_interface():
                 if not result.empty:
                     row = result.iloc[0]
                     text_to_voice(
-                        f"The first transaction for {company} was on {row['executionDate']} for {row['executionPrice']}.")
+                        f"The first transaction for {company} was on {row['executedAt']} for {row['executionPrice']}.")
                 else:
                     text_to_voice("No transactions found.")
             else:
